@@ -8,9 +8,9 @@ import (
 )
 
 type File struct {
-	Value string
+	Value        string
 	FullFilePath string
-	FileSize int64
+	FileSize     int64
 }
 
 const mediaPath = "pub/media/catalog/product"
@@ -34,15 +34,15 @@ func CollectFiles(files []File, mageRootPath string) []File {
 			fullPath = strings.Replace(path, absoluteMediaPath, "", -1)
 			path = filepath.Base(path)
 			mediaFile = File{
-				Value: path,
+				Value:        path,
 				FullFilePath: fullPath,
-				FileSize: fileInfo.Size(),
+				FileSize:     fileInfo.Size(),
 			}
-            files = append(files, mediaFile)
-        } 
+			files = append(files, mediaFile)
+		}
 
-		return nil;
-	});
+		return nil
+	})
 
 	return files
 }

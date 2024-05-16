@@ -15,7 +15,7 @@ var db *sql.DB
 
 func main() {
 	var (
-		files []File
+		files         []File
 		galleryValues []string
 	)
 
@@ -60,13 +60,13 @@ func main() {
 	galleryValues, err = GalleryValues()
 	if err != nil {
 		color.Red(err.Error())
-		return;
+		return
 	}
 
 	galleryValues, err = Placeholders(galleryValues)
 	if err != nil {
 		color.Red(err.Error())
-		return;
+		return
 	}
 
 	filesToDelete, totalFileSize := FilesToDelete(files, galleryValues, *includeCachePtr)
@@ -84,8 +84,7 @@ func main() {
 		fmt.Println(deleteMessage + file.FullFilePath)
 	}
 
-
-	color.Green("Found " + strconv.Itoa(len(filesToDelete)) + " files for " + strconv.FormatFloat(totalFileSize / 1024 / 1024, 'f', 2, 32) + " MB")
+	color.Green("Found " + strconv.Itoa(len(filesToDelete)) + " files for " + strconv.FormatFloat(totalFileSize/1024/1024, 'f', 2, 32) + " MB")
 
 	if !*dryRunPtr {
 		err = DeleteGalleryRecords()
@@ -101,5 +100,5 @@ func main() {
 		return
 	}
 
-	color.Green("Found "+ strconv.Itoa(deleteCount) +" database value(s) to remove")
+	color.Green("Found " + strconv.Itoa(deleteCount) + " database value(s) to remove")
 }

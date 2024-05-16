@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
-	"github.com/manifoldco/promptui"
 	"github.com/fatih/color"
+	"github.com/manifoldco/promptui"
 )
 
 func ValidateMageRoot(path string) (bool, error) {
@@ -26,9 +26,9 @@ func ValidateDBCredentials(user string, password string, dbName string, host str
 	return true, nil
 }
 
-func FullExecutionPrompt(isDryrun bool) (bool) {
+func FullExecutionPrompt(isDryrun bool) bool {
 	prompt := promptui.Prompt{
-		Label:    "Warning: this is not a dry run. If you would like to continue type 'yes'",
+		Label: "Warning: this is not a dry run. If you would like to continue type 'yes'",
 	}
 
 	result, err := prompt.Run()
@@ -43,7 +43,7 @@ func FullExecutionPrompt(isDryrun bool) (bool) {
 	return false
 }
 
-func DeleteMessage(isDryRun bool) (string) {
+func DeleteMessage(isDryRun bool) string {
 	var deleteMessage string = "DRY-RUN: "
 
 	if !isDryRun {
