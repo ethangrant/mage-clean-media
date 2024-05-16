@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"io/fs"
 	"os"
@@ -9,12 +10,16 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fatih/color"
+	"github.com/manifoldco/promptui"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type File struct {
 	Value string
 	FullFilePath string
+	FileSize int64
 }
 
 var db *sql.DB
@@ -22,61 +27,95 @@ var db *sql.DB
 const mediaPath = "pub/media/catalog/product"
 
 func main() {
-	var files []File
-	var galleryValues []string
-	var filesToDelete []File
+	var (
+		files []File
+		galleryValues []string
+		filesToDelete []File
+		totalFileSize float64 = 0
+		deleteMessage string = "DRY-RUN: "
+		deleteCount int
+	)
+
 	// handle arguments
-	mageRoot := os.Args[1]
-	isDryrun, err := strconv.ParseBool(os.Args[2])
-	includeCache, err := strconv.ParseBool(os.Args[3])
-	user := os.Args[4]
-	password := os.Args[5]
-	host := os.Args[6]
-	dbName := os.Args[7]
-	fmt.Println(mageRoot)
-	fmt.Println(isDryrun)
-	fmt.Println("connection details:")
-	fmt.Println(user)
-	fmt.Println(password)
-	fmt.Println(host)
-	fmt.Println(dbName)
+	mageRootPtr := flag.String("mage-root", "", "Declare absolute path to the root of your magento installation")
+	userPtr := flag.String("user", "", "Database username (required)")
+	passwordPtr := flag.String("password", "", "Database password (required)")
+	hostPtr := flag.String("host", "", "Database host (required)")
+	dbNamePtr := flag.String("name", "", "Database name (required)")
+	dryRunPtr := flag.Bool("dry-run", true, "Runs script without deleting files or DB records.")
+	includeCachePtr := flag.Bool("no-cache", false, "Exclude files from catalog/product/cache directory.")
 
-	// read db creds from env.php
+	flag.Parse()
 
+	// requiredDbArgs := []string{*userPtr, *passwordPtr, *dbNamePtr, *hostPtr}
+
+	if *mageRootPtr == "" {
+		color.Red("Please provide the full path to your magento root using --mage-root")
+		return
+	}
+
+	_, err := ValidateDBCredentials(*userPtr, *passwordPtr, *dbNamePtr, *hostPtr)
+	if err != nil {
+		color.Red(err.Error())
+		return
+	}
+
+	if !*dryRunPtr {
+		prompt := promptui.Prompt{
+			Label:    "Warning: this is not a dry run. If you would like to continue type 'yes'",
+		}
+
+		result, err := prompt.Run()
+		if err != nil {
+			return
+		}
+
+		if result != "yes" {
+			color.Red("Aborting full execution")
+			return
+		}
+
+		deleteMessage = "REMOVING: "
+	}
+
+	deleteMessage = color.YellowString(deleteMessage)
 
 	// setup mysql connection
-	connection := fmt.Sprintf("%s:%s@tcp(%s)/%s", user, password, host, dbName)
+	connection := fmt.Sprintf("%s:%s@tcp(%s)/%s", *userPtr, *passwordPtr, *hostPtr, *dbNamePtr)
 	db, err := sql.Open("mysql", connection)
 	if err != nil {
-		panic(err)
+		color.Red("There was a problem connecting to the database: " + err.Error())
+		return
 	}
 
 	pingErr := db.Ping()
 	if pingErr != nil {
-		panic(pingErr)
+		color.Red("Could not ping database: " + err.Error())
+		return
 	}
 
-	fmt.Println("Connected!")
-
 	// collect all files in pub/media/catalog/product
-	absoluteMediaPath := mageRoot + mediaPath
-
-	fmt.Println("media path: " + absoluteMediaPath)
+	absoluteMediaPath := *mageRootPtr + mediaPath
 
 	filepath.WalkDir(absoluteMediaPath, func(path string, file fs.DirEntry, err error) error {
 		var mediaFile File
 		var fullPath string
 
 		if err != nil {
-			return err
+			panic(err)
 		}
 
 		if !file.IsDir() {
+			fileInfo, err := os.Stat(path)
+			if err != nil {
+				color.Red("There was a problem reading a file: " + err.Error())
+			}
 			fullPath = strings.Replace(path, absoluteMediaPath, "", -1)
 			path = filepath.Base(path)
 			mediaFile = File{
 				Value: path,
 				FullFilePath: fullPath,
+				FileSize: fileInfo.Size(),
 			}
             files = append(files, mediaFile)
         } 
@@ -100,16 +139,29 @@ func main() {
 	SELECT value FROM core_config_data WHERE path LIKE "%placeholder%" AND value IS NOT NULL;
 	`
 
+	const countDeleteQuery = `
+	SELECT count(*) FROM catalog_product_entity_media_gallery AS gallery LEFT JOIN catalog_product_entity_media_gallery_value_to_entity AS to_entity ON gallery.value_id = to_entity.value_id WHERE (to_entity.value_id IS NULL);
+	`
+
+	const deleteGalleryQuery = `
+	DELETE gallery FROM catalog_product_entity_media_gallery AS gallery
+	LEFT JOIN catalog_product_entity_media_gallery_value_to_entity AS to_entity
+	ON gallery.value_id = to_entity.value_id
+	WHERE (to_entity.value_id IS NULL)
+`
+
 	rows, err := db.Query(galleryValuesQuery)
 	if err != nil {
-		panic(err)
+		color.Red("There was a problem collecting gallery records: " + err.Error())
+		return
 	}
 
 	for rows.Next() {
 		var value string
 		err := rows.Scan(&value)
 		if err != nil {
-			fmt.Println("Error scanning row:", err)
+			color.Red("Error scanning row:", err)
+			return
 		}
 
 		value = filepath.Base(value)
@@ -121,14 +173,16 @@ func main() {
 
 	rows, err = db.Query(placeholderQuery)
 	if err != nil {
-		panic(err)
+		color.Red("There was a problem collecting placeholder image paths: " + err.Error())
+		return
 	}
 
 	for rows.Next() {
 		var value string
 		err := rows.Scan(&value)
 		if err != nil {
-			fmt.Println("Error scanning row:", err)
+			color.Red("Error scanning row:", err)
+			return
 		}
 
 		value = filepath.Base(value)
@@ -144,7 +198,7 @@ func main() {
 	for _, file := range files {
 		var deleteFile bool = true
 
-		if !includeCache {
+		if !*includeCachePtr {
 			if strings.HasPrefix(file.FullFilePath, "/cache") {
 				continue
 			}
@@ -159,16 +213,45 @@ func main() {
 
 		if deleteFile {
 			filesToDelete = append(filesToDelete, file)
+			totalFileSize += float64(file.FileSize)
 		}
 	}
 
 	for _, file := range filesToDelete {
-		fmt.Println("Delete file: " + file.FullFilePath)
+		if !*dryRunPtr {
+			// Delete the files
+		}
+
+		fmt.Println(deleteMessage + file.FullFilePath)
 	}
 
-	fmt.Println("Total files: " + strconv.Itoa(len(files)))
-	fmt.Println("Total gallery values: " + strconv.Itoa(len(galleryValues)))
-	fmt.Println("Total files deleted: " + strconv.Itoa(len(filesToDelete)))
-	// NOT in db we remove the file
+	// fmt.Println("Total files: " + strconv.Itoa(len(files)))
+
+
+	color.Green("Found " + strconv.Itoa(len(filesToDelete)) + " files for " + strconv.FormatFloat(totalFileSize / 1024 / 1024, 'f', 2, 32) + " MB")
+
+	rows, err = db.Query(countDeleteQuery)
+	if err != nil {
+		color.Red("There was a problem counting db records to be deleted: " + err.Error())
+		return
+	}
+
+	for rows.Next() {
+		err := rows.Scan(&deleteCount)
+		if err != nil {
+			color.Red("Error scanning row:", err)
+			return
+		}
+	}
+
 	// Run query to delete media records with no value
+	if !*dryRunPtr {
+		// _, err = db.Query(deleteGalleryQuery)
+		// if err != nil {
+		// 	color.Red("There was a problem removing DB records: " + err.Error())
+		// 	return
+		// }
+	}
+
+	color.Green("Found "+ strconv.Itoa(deleteCount) +" database value(s) to remove")
 }
