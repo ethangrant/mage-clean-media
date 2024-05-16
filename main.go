@@ -11,14 +11,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// type File struct {
-// 	Value string
-// 	FullFilePath string
-// 	FileSize int64
-// }
-
-// const mediaPath = "pub/media/catalog/product"
-
 var db *sql.DB
 
 func main() {
