@@ -55,7 +55,10 @@ func main() {
 		return
 	}
 
-	files = CollectFiles(files, *mageRootPtr)
+	files, err = CollectFiles(files, *mageRootPtr)
+	if err != nil {
+		color.Red(err.Error())
+	}
 
 	galleryValues, err = GalleryValues()
 	if err != nil {

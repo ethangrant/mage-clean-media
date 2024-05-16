@@ -15,10 +15,10 @@ type File struct {
 
 const mediaPath = "pub/media/catalog/product"
 
-func CollectFiles(files []File, mageRootPath string) []File {
+func CollectFiles(files []File, mageRootPath string) ([]File, error) {
 	absoluteMediaPath := mageRootPath + mediaPath
 
-	filepath.WalkDir(absoluteMediaPath, func(path string, file fs.DirEntry, err error) error {
+	err := filepath.WalkDir(absoluteMediaPath, func(path string, file fs.DirEntry, err error) error {
 		var mediaFile File
 		var fullPath string
 
@@ -44,7 +44,11 @@ func CollectFiles(files []File, mageRootPath string) []File {
 		return nil
 	})
 
-	return files
+	if err != nil {
+		return files, err
+	}
+
+	return files, nil
 }
 
 func FilesToDelete(files []File, galleryValues []string, includeCache bool) (filesToDelete []File, totalFileSize float64) {
