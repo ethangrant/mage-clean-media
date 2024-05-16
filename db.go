@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"path/filepath"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -21,4 +22,93 @@ func DbConnect(user string, password string, host string, dbName string) (db *sq
 	}
 
 	return db, nil
+}
+
+func GalleryValues() (values []string, err error) {
+	const sql = `
+SELECT gallery.value
+FROM catalog_product_entity_media_gallery AS gallery
+INNER JOIN catalog_product_entity_media_gallery_value_to_entity AS to_entity
+ON gallery.value_id = to_entity.value_id;`
+
+	rows, err := db.Query(sql)
+	if err != nil {
+		return nil, errors.New("there was a problem collecting gallery records: " + err.Error())
+	}
+
+	for rows.Next() {
+		var value string
+		err := rows.Scan(&value)
+		if err != nil {
+			return nil, errors.New(err.Error())
+		}
+
+		value = filepath.Base(value)
+
+		values = append(values, value)
+	}
+
+	rows.Close()
+
+	return values, nil
+}
+
+func Placeholders(galleryValues []string) (values []string, err error) {
+	const sql = `
+	SELECT value FROM core_config_data WHERE path LIKE "%placeholder%" AND value IS NOT NULL;
+	`
+	rows, err := db.Query(sql)
+	if err != nil {
+		return nil, errors.New("there was a problem collecting placeholder records: " + err.Error())
+	}
+
+	for rows.Next() {
+		var value string
+		err := rows.Scan(&value)
+		if err != nil {
+			return nil, errors.New(err.Error())
+		}
+
+		value = filepath.Base(value)
+
+		galleryValues = append(galleryValues, value)
+	}
+
+	rows.Close()
+
+	return galleryValues, nil
+}
+
+func CountRecordsToDelete() (count int, err error) {
+	const sql = `
+	SELECT count(*) FROM catalog_product_entity_media_gallery AS gallery LEFT JOIN catalog_product_entity_media_gallery_value_to_entity AS to_entity ON gallery.value_id = to_entity.value_id WHERE (to_entity.value_id IS NULL);
+	`
+	rows, err := db.Query(sql)
+	if err != nil {
+		return 0, errors.New("There was a problem counting db records to be deleted " + err.Error())
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&count)
+		if err != nil {
+			return 0, errors.New(err.Error())
+		}
+	}
+
+	return count, nil
+}
+
+func DeleteGalleryRecords() (err error) {
+	const sql = `
+	DELETE gallery FROM catalog_product_entity_media_gallery AS gallery
+	LEFT JOIN catalog_product_entity_media_gallery_value_to_entity AS to_entity
+	ON gallery.value_id = to_entity.value_id
+	WHERE (to_entity.value_id IS NULL)
+	`
+	_, err = db.Query(sql)
+	if err != nil {
+		return errors.New("There was a problem removing DB records: " + err.Error())
+	}
+
+	return nil
 }
