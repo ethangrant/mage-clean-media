@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/manifoldco/promptui"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -22,9 +21,9 @@ type File struct {
 	FileSize int64
 }
 
-var db *sql.DB
-
 const mediaPath = "pub/media/catalog/product"
+
+var db *sql.DB
 
 func main() {
 	var (
@@ -32,7 +31,6 @@ func main() {
 		galleryValues []string
 		filesToDelete []File
 		totalFileSize float64 = 0
-		deleteMessage string = "DRY-RUN: "
 		deleteCount int
 	)
 
@@ -47,50 +45,29 @@ func main() {
 
 	flag.Parse()
 
-	// requiredDbArgs := []string{*userPtr, *passwordPtr, *dbNamePtr, *hostPtr}
-
-	if *mageRootPtr == "" {
-		color.Red("Please provide the full path to your magento root using --mage-root")
+	_, err := ValidateMageRoot(*mageRootPtr)
+	if err != nil {
+		color.Red(err.Error())
 		return
 	}
 
-	_, err := ValidateDBCredentials(*userPtr, *passwordPtr, *dbNamePtr, *hostPtr)
+	_, err = ValidateDBCredentials(*userPtr, *passwordPtr, *dbNamePtr, *hostPtr)
 	if err != nil {
 		color.Red(err.Error())
 		return
 	}
 
 	if !*dryRunPtr {
-		prompt := promptui.Prompt{
-			Label:    "Warning: this is not a dry run. If you would like to continue type 'yes'",
-		}
-
-		result, err := prompt.Run()
-		if err != nil {
-			return
-		}
-
-		if result != "yes" {
+		result := FullExecutionPrompt(*dryRunPtr)
+		if !result {
 			color.Red("Aborting full execution")
 			return
 		}
-
-		deleteMessage = "REMOVING: "
 	}
 
-	deleteMessage = color.YellowString(deleteMessage)
-
-	// setup mysql connection
-	connection := fmt.Sprintf("%s:%s@tcp(%s)/%s", *userPtr, *passwordPtr, *hostPtr, *dbNamePtr)
-	db, err := sql.Open("mysql", connection)
+	db, err = DbConnect(*userPtr, *passwordPtr, *hostPtr, *dbNamePtr)
 	if err != nil {
-		color.Red("There was a problem connecting to the database: " + err.Error())
-		return
-	}
-
-	pingErr := db.Ping()
-	if pingErr != nil {
-		color.Red("Could not ping database: " + err.Error())
+		color.Red(err.Error())
 		return
 	}
 
@@ -217,6 +194,7 @@ func main() {
 		}
 	}
 
+	deleteMessage := DeleteMessage(*dryRunPtr)
 	for _, file := range filesToDelete {
 		if !*dryRunPtr {
 			// Delete the files
