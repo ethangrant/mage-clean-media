@@ -26,6 +26,10 @@
 - **-password string**: Database password (required).
 - **-user string**: Database username (required).
 
+## Generating Dummy Image Data
+
+You can use the `-dummy-data` flag to generate a set of dummy image data.
+
 ## Database Configuration
 
 Ensure that the database credentials provided in the command options are correct. The tool requires access to the Magento database to identify and clean up records related to non-existent or redundant products.
