@@ -45,6 +45,7 @@ func main() {
 		return
 	}
 
+	color.Yellow("Setting up DB connection.")
 	db, err = DbConnect(*userPtr, *passwordPtr, *hostPtr, *dbNamePtr)
 	if err != nil {
 		color.Red(err.Error())
@@ -65,6 +66,7 @@ func main() {
 	// 	}
 	// }
 
+	color.Yellow("Collecting media files.")
 	files, err = CollectFiles(files, *mageRootPtr)
 	if err != nil {
 		color.Red(err.Error())
@@ -91,6 +93,7 @@ func main() {
 
 	g.SetLimit(100)
 
+	color.Yellow("Start file deletion")
 	for _, file := range filesToDelete {
 		g.Go(func() error {
 			if !*dryRunPtr {
@@ -111,6 +114,7 @@ func main() {
 
 	color.Green("Found " + strconv.Itoa(len(filesToDelete)) + " files for " + strconv.FormatFloat(totalFileSize/1024/1024, 'f', 2, 32) + " MB")
 
+	color.Yellow("Start removing gallery records.")
 	// if !*dryRunPtr {
 	// 	err = DeleteGalleryRecords()
 	// 	if err != nil {
