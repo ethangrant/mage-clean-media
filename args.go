@@ -6,6 +6,8 @@ import (
 	"github.com/manifoldco/promptui"
 )
 
+// @todo rename file and split functions out
+
 func ValidateMageRoot(path string) (bool, error) {
 	if path == "" {
 		return false, errors.New("please provide the full path to your magento root using --mage-root")

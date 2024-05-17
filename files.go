@@ -78,10 +78,10 @@ func FilesToDelete(files []File, galleryValues []string, includeCache bool) (fil
 }
 
 func DeleteFile(mageRootPath string, filePath string) (err error) {
-	err = os.Remove(mageRootPath + mediaPath + filePath)
-	if err != nil {
-		return err
-	}
+	// err = os.Remove(mageRootPath + mediaPath + filePath)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
