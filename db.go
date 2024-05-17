@@ -112,3 +112,16 @@ func DeleteGalleryRecords() (err error) {
 
 	return nil
 }
+
+func InsertGalleryRecord(value string) error {
+	const sql = `
+	INSERT INTO catalog_product_entity_media_gallery (attribute_id, value, media_type, disabled) VALUES(88, ?, "image", 0)
+	`
+
+	_, err := db.Exec(sql, value)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

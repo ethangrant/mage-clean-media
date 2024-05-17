@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/fatih/color"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"math/rand"
 	"os"
@@ -17,53 +19,82 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 	var seededRand *rand.Rand = rand.New(
 		rand.NewSource(time.Now().UnixNano()))
 
-	// source, err := os.Open("placeholder.jpg")
-	// if err != nil {
-	// 	color.Red(err.Error())
-	// 	return
-	// }
+	ctx := context.Background()
+	g, _ := errgroup.WithContext(ctx)
+	g.SetLimit(100)
+
+	color.Yellow("Starting image creation")
 
 	for j := 0; j < count; j++ {
-		filename, subDir := RandomFileName(20, charset, seededRand)
-		fullpath := mediaPath + filename
+		g.Go(func() error {
+			filename, subDir := RandomFileName(20, charset, seededRand)
+			fullpath := mediaPath + filename
 
-		// Check dir exists before creating file
-		if _, err := os.Stat(mediaPath + subDir); os.IsNotExist(err) {
-			err = os.MkdirAll(mediaPath+subDir, os.ModePerm)
+			// Check dir exists before creating file
+			if _, err := os.Stat(mediaPath + subDir); os.IsNotExist(err) {
+				err = os.MkdirAll(mediaPath+subDir, os.ModePerm)
+				if err != nil {
+					color.Red(err.Error())
+					return err
+				}
+			}
+
+			source, err := os.Open("placeholder.jpg")
 			if err != nil {
 				color.Red(err.Error())
-				return
+				return err
 			}
-		}
 
-		color.Green(fullpath)
+			destination, err := os.Create(fullpath)
+			if err != nil {
+				color.Red("problem creating destination file: " + err.Error())
+				return err
+			}
 
-		source, err := os.Open("placeholder.jpg")
-		if err != nil {
-			color.Red(err.Error())
-			return
-		}
+			_, err = io.Copy(destination, source)
+			if err != nil {
+				color.Red(err.Error())
+				return err
+			}
 
-		destination, err := os.Create(fullpath)
-		if err != nil {
-			color.Red("problem creating destination file: " + err.Error())
-			return
-		}
+			source.Close()
+			destination.Close()
 
-		color.Yellow(destination.Name())
-		color.Yellow(source.Name())
+			color.Green(filename)
 
-		_, err = io.Copy(destination, source)
-		if err != nil {
-			color.Red(err.Error())
-			return
-		}
-
-		source.Close()
-		destination.Close()
+			return nil
+		})
 	}
 
-	// Generate dummy data to insert into 'catalog_product_entity_media_gallery'
+	if err := g.Wait(); err != nil {
+		fmt.Printf("Error: %v", err)
+		return
+	}
+
+	color.Yellow("Starting DB inserts")
+
+	ctx = context.Background()
+	g, _ = errgroup.WithContext(ctx)
+	g.SetLimit(5)
+
+	// @todo batch inserts
+	for j := 0; j < count; j++ {
+		g.Go(func() error {
+			filename, _ := RandomFileName(30, charset, seededRand)
+			err := InsertGalleryRecord("/" + filename)
+			if err != nil {
+				color.Red("problem inserting dummy records: " + err.Error())
+				return err
+			}
+
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		fmt.Printf("Error: %v", err)
+		return
+	}
 }
 
 func RandomFileName(length int, charset string, seededRand *rand.Rand) (string, string) {

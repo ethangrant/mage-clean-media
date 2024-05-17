@@ -89,7 +89,7 @@ func main() {
 	ctx := context.Background()
 	g, _ := errgroup.WithContext(ctx)
 
-	g.SetLimit(10000)
+	g.SetLimit(100)
 
 	for _, file := range filesToDelete {
 		g.Go(func() error {
