@@ -79,7 +79,7 @@ func Placeholders(galleryValues []string) (values []string, err error) {
 	return galleryValues, nil
 }
 
-func CountRecordsToDelete() (count int, err error) {
+func CountRecordsToDelete() (count int64, err error) {
 	const sql = `
 	SELECT count(*) FROM catalog_product_entity_media_gallery AS gallery LEFT JOIN catalog_product_entity_media_gallery_value_to_entity AS to_entity ON gallery.value_id = to_entity.value_id WHERE (to_entity.value_id IS NULL);
 	`
@@ -98,19 +98,25 @@ func CountRecordsToDelete() (count int, err error) {
 	return count, nil
 }
 
-func DeleteGalleryRecords() (err error) {
+func DeleteGalleryRecords() (count int64, err error) {
 	const sql = `
 	DELETE gallery FROM catalog_product_entity_media_gallery AS gallery
 	LEFT JOIN catalog_product_entity_media_gallery_value_to_entity AS to_entity
 	ON gallery.value_id = to_entity.value_id
 	WHERE (to_entity.value_id IS NULL)
 	`
-	_, err = db.Query(sql)
+	result, err := db.Exec(sql)
 	if err != nil {
-		return errors.New("There was a problem removing DB records: " + err.Error())
+		return 0, errors.New("There was a problem removing DB records: " + err.Error())
 	}
 
-	return nil
+	count, err = result.RowsAffected()
+	if err != nil {
+		return 0, errors.New(err.Error())
+	}
+
+
+	return count, nil
 }
 
 func InsertGalleryRecord(value string) error {

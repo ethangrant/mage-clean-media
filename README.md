@@ -2,11 +2,14 @@
 
 `mage-clean-media` is a Go-based tool inspired by the [CleanMedia](https://github.com/cap340/CleanMedia) project. It is designed to clean up product media files and database records related to products that no longer exist or are redundant in a Magento-based e-commerce platform.
 
+Follows the same logic as [CleanMedia](https://github.com/cap340/CleanMedia), the goal of this project was to just make that process faster and learn some Go in the process.
+
 ## Features
 
-- **Automated Media Cleaning**: Detects and removes unused media files associated with deleted products.
+- **Media Cleaning**: Detects and removes unused media files associated with deleted products.
 - **Database Cleanup**: Removes database records related to non-existent or redundant products.
 - **Reporting**: Generates report of the cleaning process for transparency and auditing.
+- **No module**: Requires no Magento 2 module installation. GO produces a binary executable that an be run on any system.
 
 ### Example
 

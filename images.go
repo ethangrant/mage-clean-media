@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/fatih/color"
-	"golang.org/x/sync/errgroup"
 	"io"
 	"math/rand"
 	"os"
 	"time"
+
+	"github.com/fatih/color"
+	"golang.org/x/sync/errgroup"
 )
 
 func GenerateDummyImageData(mageRootPath string, count int) {
@@ -23,11 +24,11 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(100)
 
-	color.Yellow("Starting image creation")
+	color.Yellow(fmt.Sprintf("Generating %d images", count))
 
 	for j := 0; j < count; j++ {
 		g.Go(func() error {
-			filename, subDir := RandomFileName(20, charset, seededRand)
+			filename, subDir := RandomFileName(40, charset, seededRand)
 			fullpath := mediaPath + filename
 
 			// Check dir exists before creating file
@@ -39,7 +40,7 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 				}
 			}
 
-			source, err := os.Open("placeholder.jpg")
+			source, err := os.Open("images/placeholder1.jpg")
 			if err != nil {
 				color.Red(err.Error())
 				return err
@@ -60,8 +61,6 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 			source.Close()
 			destination.Close()
 
-			color.Green(filename)
-
 			return nil
 		})
 	}
@@ -80,7 +79,7 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 	// @todo batch inserts
 	for j := 0; j < count; j++ {
 		g.Go(func() error {
-			filename, _ := RandomFileName(30, charset, seededRand)
+			filename, _ := RandomFileName(40, charset, seededRand)
 			err := InsertGalleryRecord("/" + filename)
 			if err != nil {
 				color.Red("problem inserting dummy records: " + err.Error())
