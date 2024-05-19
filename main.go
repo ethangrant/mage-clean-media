@@ -19,7 +19,7 @@ func main() {
 	var (
 		files         []File
 		galleryValues []string
-		deleteCount int64 = 0
+		deleteCount   int64 = 0
 	)
 
 	mageRootPtr := flag.String("mage-root", "", "Declare absolute path to the root of your magento installation")
@@ -31,6 +31,7 @@ func main() {
 	includeCachePtr := flag.Bool("no-cache", true, "Exclude files from catalog/product/cache directory.")
 	dummyData := flag.Bool("dummy-data", false, "Set flag to generate a set of dummy image data.")
 	imageCount := flag.Int("image-count", 500, "Define number of images to generate with dummy data option.")
+	prompt := flag.Bool("prompt", true, "Disable prompt that displays before full execution.")
 
 	flag.Parse()
 
@@ -59,13 +60,13 @@ func main() {
 		return
 	}
 
-	// if !*dryRunPtr {
-	// 	result := FullExecutionPrompt(*dryRunPtr)
-	// 	if !result {
-	// 		color.Red("Aborting full execution")
-	// 		return
-	// 	}
-	// }
+	if !*dryRunPtr && *prompt {
+		result := FullExecutionPrompt(*dryRunPtr)
+		if !result {
+			color.Red("Aborting full execution")
+			return
+		}
+	}
 
 	galleryValues, err = GalleryValues()
 	if err != nil {
@@ -85,14 +86,11 @@ func main() {
 		color.Red(err.Error())
 	}
 
-	// filesToDelete, totalFileSize := FilesToDelete(files, galleryValues, *includeCachePtr)
-
 	deleteMessage := DeleteMessage(*dryRunPtr)
 
 	ctx := context.Background()
 	g, _ := errgroup.WithContext(ctx)
-
-	g.SetLimit(100)
+	g.SetLimit(6)
 
 	color.Yellow("Start file deletion")
 	for _, file := range filesToDelete {
@@ -108,30 +106,48 @@ func main() {
 		})
 	}
 
+	g.Go(func() error {
+		if *dryRunPtr {
+			deleteCount, err = CountRecordsToDelete()
+			if err != nil {
+				color.Red(err.Error())
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	g.Go(func() error {
+		if *dryRunPtr {
+			deleteCount, err = CountRecordsToDelete()
+			if err != nil {
+				color.Red(err.Error())
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	g.Go(func() error {
+		if !*dryRunPtr {
+			deleteCount, err = DeleteGalleryRecords()
+			if err != nil {
+				color.Red(err.Error())
+				return err
+			}
+		}
+
+		return nil
+	})
+
 	if err := g.Wait(); err != nil {
 		fmt.Printf("Error: %v", err)
 		return
 	}
 
 	color.Green("Found " + strconv.Itoa(len(filesToDelete)) + " files for " + strconv.FormatFloat(totalFileSize/1024/1024, 'f', 2, 32) + " MB")
-
-	if *dryRunPtr {
-		deleteCount, err = CountRecordsToDelete()
-		if err != nil {
-			color.Red(err.Error())
-			return
-		}
-	}
-
-	color.Yellow("Start removing gallery records.")
-	if !*dryRunPtr {
-		deleteCount, err = DeleteGalleryRecords()
-		if err != nil {
-			color.Red(err.Error())
-			return
-		}
-	}
-
 	color.Green("Found " + strconv.FormatInt(deleteCount, 10) + " database value(s) to remove")
 }
 

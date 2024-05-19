@@ -15,20 +15,15 @@ import (
 func GenerateDummyImageData(mageRootPath string, count int) {
 	var mediaPath string = mageRootPath + "pub/media/catalog/product/"
 
-	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
-
-	var seededRand *rand.Rand = rand.New(
-		rand.NewSource(time.Now().UnixNano()))
-
 	ctx := context.Background()
 	g, _ := errgroup.WithContext(ctx)
-	g.SetLimit(100)
+	g.SetLimit(5)
 
 	color.Yellow(fmt.Sprintf("Generating %d images", count))
 
-	for j := 0; j < count; j++ {
+	for j := 0; j <= count; j++ {
 		g.Go(func() error {
-			filename, subDir := RandomFileName(40, charset, seededRand)
+			filename, subDir := RandomFileName(40)
 			fullpath := mediaPath + filename
 
 			// Check dir exists before creating file
@@ -74,8 +69,8 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 
 	var fileNames []string
 	for j := 0; j < count; j++ {
-			filename, _ := RandomFileName(40, charset, seededRand)
-			fileNames = append(fileNames, filename)
+		filename, _ := RandomFileName(40)
+		fileNames = append(fileNames, filename)
 	}
 
 	ctx = context.Background()
@@ -100,7 +95,12 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 	}
 }
 
-func RandomFileName(length int, charset string, seededRand *rand.Rand) (string, string) {
+func RandomFileName(length int) (string, string) {
+	var seededRand *rand.Rand = rand.New(
+		rand.NewSource(time.Now().UnixNano()))
+
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+
 	b := make([]byte, length)
 	for i := range b {
 		b[i] = charset[seededRand.Intn(len(charset))]

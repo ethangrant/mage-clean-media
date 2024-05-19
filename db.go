@@ -115,7 +115,6 @@ func DeleteGalleryRecords() (count int64, err error) {
 		return 0, errors.New(err.Error())
 	}
 
-
 	return count, nil
 }
 
