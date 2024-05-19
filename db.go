@@ -131,3 +131,25 @@ func InsertGalleryRecord(value string) error {
 
 	return nil
 }
+
+func InsertMultipleGalleryRecords(filenames []string) error {
+	var sql = `
+	INSERT INTO catalog_product_entity_media_gallery (attribute_id, value, media_type, disabled) 
+	`
+
+	for index, file := range filenames {
+		if index == 0 {
+			sql += fmt.Sprintf("VALUES(88, '%s', 'image', 0)", file)
+			continue
+		}
+
+		sql += fmt.Sprintf(",(88, '%s', 'image', 0)", file)
+	}
+
+	_, err := db.Exec(sql)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

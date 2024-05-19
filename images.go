@@ -72,17 +72,21 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 
 	color.Yellow("Starting DB inserts")
 
+	var fileNames []string
+	for j := 0; j < count; j++ {
+			filename, _ := RandomFileName(40, charset, seededRand)
+			fileNames = append(fileNames, filename)
+	}
+
 	ctx = context.Background()
 	g, _ = errgroup.WithContext(ctx)
 	g.SetLimit(5)
 
-	// @todo batch inserts
-	for j := 0; j < count; j++ {
+	chunks := ChunkSlice(fileNames, 1000)
+	for _, chunk := range chunks {
 		g.Go(func() error {
-			filename, _ := RandomFileName(40, charset, seededRand)
-			err := InsertGalleryRecord("/" + filename)
+			err := InsertMultipleGalleryRecords(chunk)
 			if err != nil {
-				color.Red("problem inserting dummy records: " + err.Error())
 				return err
 			}
 
