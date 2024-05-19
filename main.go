@@ -67,12 +67,6 @@ func main() {
 	// 	}
 	// }
 
-	color.Yellow("Collecting media files.")
-	files, err = CollectFiles(files, *mageRootPtr)
-	if err != nil {
-		color.Red(err.Error())
-	}
-
 	galleryValues, err = GalleryValues()
 	if err != nil {
 		color.Red(err.Error())
@@ -85,7 +79,13 @@ func main() {
 		return
 	}
 
-	filesToDelete, totalFileSize := FilesToDelete(files, galleryValues, *includeCachePtr)
+	color.Yellow("Collecting media files.")
+	filesToDelete, totalFileSize, err := CollectFiles(files, *mageRootPtr, galleryValues, *includeCachePtr)
+	if err != nil {
+		color.Red(err.Error())
+	}
+
+	// filesToDelete, totalFileSize := FilesToDelete(files, galleryValues, *includeCachePtr)
 
 	deleteMessage := DeleteMessage(*dryRunPtr)
 
