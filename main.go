@@ -17,9 +17,9 @@ var db *sql.DB
 
 func main() {
 	var (
-		files         []File
+		// files         []File
 		galleryValues []string
-		deleteCount int64 = 0
+		deleteCount   int64 = 0
 	)
 
 	mageRootPtr := flag.String("mage-root", "", "Declare absolute path to the root of your magento installation")
@@ -67,6 +67,8 @@ func main() {
 	// 	}
 	// }
 
+	deleteMessage := DeleteMessage(*dryRunPtr)
+
 	galleryValues, err = GalleryValues()
 	if err != nil {
 		color.Red(err.Error())
@@ -79,24 +81,32 @@ func main() {
 		return
 	}
 
-	color.Yellow("Collecting media files.")
-	filesToDelete, totalFileSize, err := CollectFiles(files, *mageRootPtr, galleryValues, *includeCachePtr)
-	if err != nil {
-		color.Red(err.Error())
-	}
-
-	// filesToDelete, totalFileSize := FilesToDelete(files, galleryValues, *includeCachePtr)
-
-	deleteMessage := DeleteMessage(*dryRunPtr)
-
 	ctx := context.Background()
 	g, _ := errgroup.WithContext(ctx)
-
 	g.SetLimit(100)
 
-	color.Yellow("Start file deletion")
-	for _, file := range filesToDelete {
-		g.Go(func() error {
+	color.Yellow("Collecting media files & starting file deletion")
+
+	filesChan := make(chan File)
+	g.Go(func() error {
+		totalFileSize, err := CollectFiles(filesChan, *mageRootPtr, galleryValues, *includeCachePtr)
+		if err != nil {
+			color.Red(err.Error())
+		}
+
+		fmt.Println(totalFileSize)
+
+		close(filesChan)
+
+		return nil
+	})
+
+	fmt.Println("Starting go routine to delete files")
+
+	var filesToDelete []File
+	g.Go(func() error {
+		for file := range filesChan {
+			filesToDelete = append(filesToDelete, file)
 			if !*dryRunPtr {
 				err = DeleteFile(*mageRootPtr, file.FullFilePath)
 				if err != nil {
@@ -104,16 +114,19 @@ func main() {
 				}
 			}
 			fmt.Println(deleteMessage + file.FullFilePath)
-			return nil
-		})
-	}
+		}
+
+		return nil
+	})
 
 	if err := g.Wait(); err != nil {
 		fmt.Printf("Error: %v", err)
 		return
 	}
 
-	color.Green("Found " + strconv.Itoa(len(filesToDelete)) + " files for " + strconv.FormatFloat(totalFileSize/1024/1024, 'f', 2, 32) + " MB")
+	color.Green("Found " + strconv.Itoa(len(filesToDelete)))
+
+	// color.Green("Found " + strconv.Itoa(len(filesToDelete)) + " files for " + strconv.FormatFloat(totalFileSize/1024/1024, 'f', 2, 32) + " MB")
 
 	if *dryRunPtr {
 		deleteCount, err = CountRecordsToDelete()

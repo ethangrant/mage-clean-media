@@ -15,7 +15,7 @@ type File struct {
 
 const mediaPath = "pub/media/catalog/product"
 
-func CollectFiles(files []File, mageRootPath string, galleryValues []string, includeCache bool) ([]File, float64, error) {
+func CollectFiles(filesChan chan<- File, mageRootPath string, galleryValues []string, includeCache bool) (float64, error) {
 	var totalFileSize float64
 	absoluteMediaPath := mageRootPath + mediaPath
 
@@ -42,7 +42,7 @@ func CollectFiles(files []File, mageRootPath string, galleryValues []string, inc
 
 			// Check should delete
 			if ShouldDeleteFile(mediaFile, galleryValues, includeCache) {
-				files = append(files, mediaFile)
+				filesChan <- mediaFile
 				totalFileSize += float64(mediaFile.FileSize)
 			}
 		}
@@ -51,10 +51,10 @@ func CollectFiles(files []File, mageRootPath string, galleryValues []string, inc
 	})
 
 	if err != nil {
-		return files, totalFileSize, err
+		return totalFileSize, err
 	}
 
-	return files, totalFileSize, nil
+	return totalFileSize, nil
 }
 
 func ShouldDeleteFile(file File, galleryValues []string, includeCache bool) (result bool) {
