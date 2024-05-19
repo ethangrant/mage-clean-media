@@ -21,13 +21,16 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 		rand.NewSource(time.Now().UnixNano()))
 
 	ctx := context.Background()
-	g, _ := errgroup.WithContext(ctx)
-	g.SetLimit(100)
+	g1, _ := errgroup.WithContext(ctx)
+	g1.SetLimit(100)
+	g2, _ := errgroup.WithContext(ctx)
+	g2.SetLimit(5)
 
 	color.Yellow(fmt.Sprintf("Generating %d images", count))
 
-	for j := 0; j < count; j++ {
-		g.Go(func() error {
+		g1.Go(func() error {
+		for j := 0; j < count; j++ {
+
 			filename, subDir := RandomFileName(40, charset, seededRand)
 			fullpath := mediaPath + filename
 
@@ -61,36 +64,35 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 			source.Close()
 			destination.Close()
 
-			return nil
-		})
-	}
+		}
+		return nil
 
-	if err := g.Wait(); err != nil {
-		fmt.Printf("Error: %v", err)
-		return
-	}
+		})
 
 	color.Yellow("Starting DB inserts")
 
-	ctx = context.Background()
-	g, _ = errgroup.WithContext(ctx)
-	g.SetLimit(5)
-
 	// @todo batch inserts
+		g2.Go(func() error {
 	for j := 0; j < count; j++ {
-		g.Go(func() error {
+
 			filename, _ := RandomFileName(40, charset, seededRand)
 			err := InsertGalleryRecord("/" + filename)
 			if err != nil {
 				color.Red("problem inserting dummy records: " + err.Error())
 				return err
 			}
+		}
 
 			return nil
 		})
+
+
+	if err := g1.Wait(); err != nil {
+		fmt.Printf("Error: %v", err)
+		return
 	}
 
-	if err := g.Wait(); err != nil {
+	if err := g2.Wait(); err != nil {
 		fmt.Printf("Error: %v", err)
 		return
 	}
