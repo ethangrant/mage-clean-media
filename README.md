@@ -14,7 +14,7 @@ Follows the same logic as [CleanMedia](https://github.com/cap340/CleanMedia), th
 ### Example
 
 ```bash
--mage-root /var/www/heals/web/ -host 127.0.0.1:40000 -name dbname -user root -password root -dry-run
+./mage-clean-media --mage-root=/var/www/magento/web/ --name=heals_staging --password=root --user=root --host=127.0.0.1:40000 --dry-run
 ```
 
 ### Options
@@ -28,6 +28,7 @@ Follows the same logic as [CleanMedia](https://github.com/cap340/CleanMedia), th
 - **-no-cache**: Exclude files from the catalog/product/cache directory. (default true)
 - **-password string**: Database password (required).
 - **-user string**: Database username (required).
+- **-prompt**: Disable prompt during full execution. (default true)
 
 ## Generating Dummy Image Data
 
@@ -43,4 +44,10 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Acknowledgments
 
-Heavily inspired by [CleanMedia](https://github.com/cap340/CleanMedia)
+Heavily inspired by [CleanMedia](https://github.com/cap340/CleanMedia). Logic implemented mimics that of the cap340 package.
+
+### Third party libs
+
+- [github.com/fatih/color](https://github.com/fatih/color): Coloured terminal output.
+- [github.com/manifoldco/promptui](https://github.com/manifoldco/promptui): CLI prompt
+- [github.com/MichaelTJones/walk](https://github.com/MichaelTJones/walk): Parallel file walk.
