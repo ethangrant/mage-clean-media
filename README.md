@@ -11,6 +11,16 @@ Follows the same logic as [CleanMedia](https://github.com/cap340/CleanMedia), th
 - **Reporting**: Generates report of the cleaning process for transparency and auditing.
 - **No module**: Requires no Magento 2 module installation. GO produces a binary executable that an be run on any system.
 
+### Installation
+
+[Binary download](https://github.com/ethangrant/mage-clean-media/releases)
+
+Download binary via CURL, Linux example
+
+```bash
+curl -L https://github.com/ethangrant/mage-clean-media/releases/download/v0.1.1/mage-clean-media_Linux_x86_64.tar.gz | tar -xz
+```
+
 ### Example
 
 ```bash
