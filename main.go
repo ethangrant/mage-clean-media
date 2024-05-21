@@ -47,6 +47,7 @@ func main() {
 		return
 	}
 
+	color.Yellow("Setting up database connection.")
 	db, err = DbConnect(*userPtr, *passwordPtr, *hostPtr, *dbNamePtr)
 	if err != nil {
 		color.Red(err.Error())
@@ -71,6 +72,7 @@ func main() {
 		}
 	}
 
+	color.Yellow("Collecting gallery records")
 	galleryValues, err = GalleryValues()
 	if err != nil {
 		color.Red(err.Error())
@@ -83,6 +85,8 @@ func main() {
 		return
 	}
 
+	color.Yellow("Collecting files to delete.")
+
 	filesToDelete, totalFileSize, err := CollectFiles(files, *mageRootPtr, galleryValues, *includeCachePtr)
 	if err != nil {
 		color.Red(err.Error())
@@ -94,6 +98,7 @@ func main() {
 	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(6)
 
+	color.Yellow("Start processing files.")
 	for _, file := range filesToDelete {
 		g.Go(func() error {
 			if !*dryRunPtr {
