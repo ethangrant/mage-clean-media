@@ -13,7 +13,11 @@ Follows the same logic as [CleanMedia](https://github.com/cap340/CleanMedia), th
 
 ### Installation
 
-[Binary download](https://github.com/ethangrant/mage-clean-media/releases)
+[Binary download](https://github.com/ethangrant/mage-clean-media/releases) - Check system information:
+
+```bash
+uname -o -m
+```
 
 Download binary via CURL, Linux example
 
