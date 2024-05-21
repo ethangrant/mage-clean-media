@@ -13,7 +13,7 @@ func DbConnect(user string, password string, host string, dbName string) (db *sq
 	connection := fmt.Sprintf("%s:%s@tcp(%s)/%s", user, password, host, dbName)
 	db, err = sql.Open("mysql", connection)
 	if err != nil {
-	fmt.Println("Error")
+		fmt.Println("Error")
 		return nil, errors.New("there was a problem connecting to the database: " + err.Error())
 	}
 

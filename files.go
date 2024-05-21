@@ -1,7 +1,9 @@
 package main
 
 import (
-	"io/fs"
+	"fmt"
+	"github.com/MichaelTJones/walk"
+	"github.com/fatih/color"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,37 +15,36 @@ type File struct {
 	FileSize     int64
 }
 
-const mediaPath = "pub/media/catalog/product"
-
-func CollectFiles(files []File, mageRootPath string, galleryValues []string, includeCache bool) ([]File, float64, error) {
+func DeleteFiles(files []File, mageRootPath string, galleryValues []string, includeCache bool, isDryRun bool) (int64, float64, error) {
+	const mediaPath = "pub/media/catalog/product"
 	var totalFileSize float64
+	var deletedCount int64
 	absoluteMediaPath := mageRootPath + mediaPath
+	deleteMessage := DeleteMessage(isDryRun)
 
-	err := filepath.WalkDir(absoluteMediaPath, func(path string, file fs.DirEntry, err error) error {
-		var mediaFile File
-		var fullPath string
+	err := walk.Walk(absoluteMediaPath, func(root string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			// Get just the file name to compare against DB records
+			path := filepath.Base(root)
 
-		if err != nil {
-			return err
-		}
-
-		if !file.IsDir() {
-			fileInfo, err := os.Stat(path)
-			if err != nil {
-				return err
-			}
-			fullPath = strings.Replace(path, absoluteMediaPath, "", -1)
-			path = filepath.Base(path)
-			mediaFile = File{
+			mediaFile := File{
 				Value:        path,
-				FullFilePath: fullPath,
-				FileSize:     fileInfo.Size(),
+				FullFilePath: root,
+				FileSize:     info.Size(),
 			}
 
-			// Check should delete
 			if ShouldDeleteFile(mediaFile, galleryValues, includeCache) {
-				files = append(files, mediaFile)
+
+				if !isDryRun {
+					err = DeleteFile(root)
+					if err != nil {
+						return err
+					}
+				}
+
+				fmt.Println(deleteMessage + root)
 				totalFileSize += float64(mediaFile.FileSize)
+				deletedCount++
 			}
 		}
 
@@ -51,17 +52,17 @@ func CollectFiles(files []File, mageRootPath string, galleryValues []string, inc
 	})
 
 	if err != nil {
-		return files, totalFileSize, err
+		return deletedCount, totalFileSize, err
 	}
 
-	return files, totalFileSize, nil
+	return deletedCount, totalFileSize, nil
 }
 
 func ShouldDeleteFile(file File, galleryValues []string, includeCache bool) (result bool) {
 	result = true
-
+	
 	if !includeCache {
-		if strings.HasPrefix(file.FullFilePath, "/cache") {
+		if strings.Contains(file.FullFilePath, "catalog/product/cache") {
 			// File is in cache dir, don't delete
 			return false
 		}
@@ -77,11 +78,23 @@ func ShouldDeleteFile(file File, galleryValues []string, includeCache bool) (res
 	return result
 }
 
-func DeleteFile(mageRootPath string, filePath string) (err error) {
-	err = os.Remove(mageRootPath + mediaPath + filePath)
+func DeleteFile(path string) (err error) {
+	err = os.Remove(path)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func DeleteMessage(isDryRun bool) string {
+	var deleteMessage string = "DRY-RUN: "
+
+	if !isDryRun {
+		deleteMessage = "REMOVING: "
+	}
+
+	deleteMessage = color.YellowString(deleteMessage)
+
+	return deleteMessage
 }

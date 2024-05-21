@@ -19,7 +19,7 @@ func main() {
 	var (
 		files         []File
 		galleryValues []string
-		deleteCount   int64 = 0
+		deleteCount   int64
 	)
 
 	mageRootPtr := flag.String("mage-root", "", "Declare absolute path to the root of your magento installation")
@@ -85,44 +85,15 @@ func main() {
 		return
 	}
 
-	color.Yellow("Collecting files to delete.")
-
-	filesToDelete, totalFileSize, err := CollectFiles(files, *mageRootPtr, galleryValues, *includeCachePtr)
+	color.Yellow("Start processing files")
+	fileDeleteCount, totalFileSize, err := DeleteFiles(files, *mageRootPtr, galleryValues, *includeCachePtr, *dryRunPtr)
 	if err != nil {
 		color.Red(err.Error())
 	}
 
-	deleteMessage := DeleteMessage(*dryRunPtr)
-
 	ctx := context.Background()
 	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(6)
-
-	color.Yellow("Start processing files.")
-	for _, file := range filesToDelete {
-		g.Go(func() error {
-			if !*dryRunPtr {
-				err = DeleteFile(*mageRootPtr, file.FullFilePath)
-				if err != nil {
-					return err
-				}
-			}
-			fmt.Println(deleteMessage + file.FullFilePath)
-			return nil
-		})
-	}
-
-	g.Go(func() error {
-		if *dryRunPtr {
-			deleteCount, err = CountRecordsToDelete()
-			if err != nil {
-				color.Red(err.Error())
-				return err
-			}
-		}
-
-		return nil
-	})
 
 	g.Go(func() error {
 		if *dryRunPtr {
@@ -153,18 +124,6 @@ func main() {
 		return
 	}
 
-	color.Green("Found " + strconv.Itoa(len(filesToDelete)) + " files for " + strconv.FormatFloat(totalFileSize/1024/1024, 'f', 2, 32) + " MB")
+	color.Green("Found " + strconv.Itoa(int(fileDeleteCount)) + " files for " + strconv.FormatFloat(totalFileSize/1024/1024, 'f', 2, 32) + " MB")
 	color.Green("Found " + strconv.FormatInt(deleteCount, 10) + " database value(s) to remove")
-}
-
-func DeleteMessage(isDryRun bool) string {
-	var deleteMessage string = "DRY-RUN: "
-
-	if !isDryRun {
-		deleteMessage = "REMOVING: "
-	}
-
-	deleteMessage = color.YellowString(deleteMessage)
-
-	return deleteMessage
 }
