@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func GenerateDummyImageData(mageRootPath string, count int) {
+func GenerateDummyImageData(mageRootPath string, count int) error {
 	var mediaPath string = mageRootPath + "pub/media/catalog/product/"
 
 	ctx := context.Background()
@@ -62,7 +62,7 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 
 	if err := g.Wait(); err != nil {
 		fmt.Printf("Error: %v", err)
-		return
+		return err
 	}
 
 	color.Yellow("Starting DB inserts")
@@ -91,8 +91,10 @@ func GenerateDummyImageData(mageRootPath string, count int) {
 
 	if err := g.Wait(); err != nil {
 		fmt.Printf("Error: %v", err)
-		return
+		return err
 	}
+
+	return nil
 }
 
 func RandomFileName(length int) (string, string) {

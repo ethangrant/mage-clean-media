@@ -13,12 +13,13 @@ func DbConnect(user string, password string, host string, dbName string) (db *sq
 	connection := fmt.Sprintf("%s:%s@tcp(%s)/%s", user, password, host, dbName)
 	db, err = sql.Open("mysql", connection)
 	if err != nil {
-		return nil, errors.New("There was a problem connecting to the database: " + err.Error())
+	fmt.Println("Error")
+		return nil, errors.New("there was a problem connecting to the database: " + err.Error())
 	}
 
 	pingErr := db.Ping()
 	if pingErr != nil {
-		return nil, errors.New("Could not ping database: " + err.Error())
+		return nil, errors.New("db connection failed please check credentials")
 	}
 
 	return db, nil

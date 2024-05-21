@@ -10,8 +10,8 @@ func ValidateMageRoot(path string) (bool, error) {
 	return true, nil
 }
 
-func ValidateDBCredentials(user string, password string, dbName string, host string) (bool, error) {
-	requiredDbArgs := []string{user, password, dbName, host}
+func ValidateDBCredentials(user string, dbName string, host string) (bool, error) {
+	requiredDbArgs := []string{user, dbName, host}
 
 	for _, arg := range requiredDbArgs {
 		if arg == "" {

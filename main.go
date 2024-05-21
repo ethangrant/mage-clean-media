@@ -41,13 +41,12 @@ func main() {
 		return
 	}
 
-	_, err = ValidateDBCredentials(*userPtr, *passwordPtr, *dbNamePtr, *hostPtr)
+	_, err = ValidateDBCredentials(*userPtr, *dbNamePtr, *hostPtr)
 	if err != nil {
 		color.Red(err.Error())
 		return
 	}
 
-	color.Yellow("Setting up DB connection.")
 	db, err = DbConnect(*userPtr, *passwordPtr, *hostPtr, *dbNamePtr)
 	if err != nil {
 		color.Red(err.Error())
@@ -55,7 +54,11 @@ func main() {
 	}
 
 	if *dummyData {
-		GenerateDummyImageData(*mageRootPtr, *imageCount)
+		err := GenerateDummyImageData(*mageRootPtr, *imageCount)
+		if err != nil {
+			color.Red(err.Error())
+			return
+		}
 		color.Green("Dummy data has been generated successfully")
 		return
 	}
@@ -80,7 +83,6 @@ func main() {
 		return
 	}
 
-	color.Yellow("Collecting media files.")
 	filesToDelete, totalFileSize, err := CollectFiles(files, *mageRootPtr, galleryValues, *includeCachePtr)
 	if err != nil {
 		color.Red(err.Error())
@@ -92,7 +94,6 @@ func main() {
 	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(6)
 
-	color.Yellow("Start file deletion")
 	for _, file := range filesToDelete {
 		g.Go(func() error {
 			if !*dryRunPtr {
