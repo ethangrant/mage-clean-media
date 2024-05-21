@@ -30,6 +30,22 @@ Follows the same logic as [CleanMedia](https://github.com/cap340/CleanMedia), th
 - **-user string**: Database username (required).
 - **-prompt**: Disable prompt during full execution. (default true)
 
+### Dry Run Comparison
+
+**cap340/CleanMedia:**
+![cap340/CleanMedia dryrun](readme/images/cap-dry.png)
+
+**mage-clean-media:**
+![mage-clean-media](readme/images/go-dry.png)
+
+### Full Execution Comparison
+
+**cap340/CleanMedia:**
+![cap340/CleanMedia full](readme/images/cap-full-run.png)
+
+**mage-clean-media:**
+![mage-clean-media full](readme/images/go-full-run.png)
+
 ## Generating Dummy Image Data
 
 You can use the `-dummy-data` flag to generate a set of dummy image data.
