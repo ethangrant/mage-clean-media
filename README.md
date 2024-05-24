@@ -28,7 +28,7 @@ curl -L https://github.com/ethangrant/mage-clean-media/releases/download/v0.1.1/
 ### Example
 
 ```bash
-./mage-clean-media --mage-root=/var/www/magento/web/ --name=heals_staging --password=root --user=root --host=127.0.0.1:40000 --dry-run
+./mage-clean-media --mage-root=/var/www/magento/web/ --name=dbname --password=dbpassword --user=dbusername --host=127.0.0.1:40000 --dry-run
 ```
 
 ### Options
